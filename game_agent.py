@@ -168,6 +168,10 @@ class CustomPlayer:
                 to pass the project unit tests; you cannot call any other
                 evaluation function directly.
         """
+
+        if self.time_left() < self.TIMER_THRESHOLD:
+            raise Timeout()
+
         best_score = float('-inf') if maximizing_player else float('inf')
         best_move = (-1,-1)
 
@@ -192,13 +196,6 @@ class CustomPlayer:
                     best_score = sub_score
 
         return (best_score,best_move)
-
-
-        if self.time_left() < self.TIMER_THRESHOLD:
-            raise Timeout()
-
-        # TODO: finish this function!
-        raise NotImplementedError
 
     def alphabeta(self, game, depth, alpha=float("-inf"), beta=float("inf"), maximizing_player=True):
         """Implement minimax search with alpha-beta pruning as described in the
@@ -238,6 +235,10 @@ class CustomPlayer:
                 to pass the project unit tests; you cannot call any other
                 evaluation function directly.
         """
+
+        if self.time_left() < self.TIMER_THRESHOLD:
+            raise Timeout()
+
         best_score = float('-inf') if maximizing_player else float('inf')
         best_move = (-1,-1)
 
@@ -262,9 +263,3 @@ class CustomPlayer:
                     best_score = sub_score
 
         return (best_score,best_move)
-
-        if self.time_left() < self.TIMER_THRESHOLD:
-            raise Timeout()
-
-        # TODO: finish this function!
-        raise NotImplementedError
