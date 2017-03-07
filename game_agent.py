@@ -129,7 +129,7 @@ class CustomPlayer:
         best_move = legal_moves[0]
 
         try:
-            best_score,best_move = self.minimax(game,1)
+            best_score,best_move = self.minimax(game,6)
 
         except Timeout:
             # Handle any actions required at timeout, if necessary
@@ -174,22 +174,28 @@ class CustomPlayer:
         best_score = float('-inf') if maximizing_player else float('inf')
         best_move = (-1,-1)
 
-        if (depth==1):
-            posible_moves = game.get_legal_moves(player)
-            for move in posible_moves:
-                sub_game = game.copy()
-                sub_game.apply_move(move)
-                current_score = self.score(sub_game,player)
-                if maximizing_player:
-                    if current_score>=best_score:
-                        best_move = move
-                        best_score = current_score
-                else:
-                    if current_score<=best_score:
-                        best_move = move
-                        best_score = current_score
+        posible_moves = game.get_legal_moves(player)
+        for move in posible_moves:
+            #sub_game = game.copy()
+            sub_game = game.forecast_move(move)
+            if depth==1:
+                score_fn = self.score
+                sub_score = score_fn(sub_game,self)
+            else:
+                # Going deeper
+                sub_score, _ = self.minimax(sub_game, depth - 1, not maximizing_player)
+
+            if maximizing_player:
+                if sub_score > best_score:
+                    best_move = move
+                    best_score = sub_score
+            else:
+                if sub_score < best_score:
+                    best_move = move
+                    best_score = sub_score
 
         return (best_score,best_move)
+
 
         if self.time_left() < self.TIMER_THRESHOLD:
             raise Timeout()
