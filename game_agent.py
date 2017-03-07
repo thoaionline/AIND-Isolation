@@ -118,25 +118,24 @@ class CustomPlayer:
 
         self.time_left = time_left
 
-        # TODO: finish this function!
-
         # Perform any required initializations, including selecting an initial
         # move from the game board (i.e., an opening book), or returning
         # immediately if there are no legal moves
 
+        if len(legal_moves)==0:
+            return (-1,-1)
+
+        best_score = float("-inf")
+        best_move = legal_moves[0]
+
         try:
-            # The search method call (alpha beta or minimax) should happen in
-            # here in order to avoid timeout. The try/except block will
-            # automatically catch the exception raised by the search method
-            # when the timer gets close to expiring
-            pass
+            best_score,best_move = self.minimax(game,1)
 
         except Timeout:
             # Handle any actions required at timeout, if necessary
             pass
 
-        # Return the best move from the last completed search iteration
-        raise NotImplementedError
+        return best_move
 
     def minimax(self, game, depth, maximizing_player=True):
         """Implement the minimax search algorithm as described in the lectures.
@@ -169,6 +168,29 @@ class CustomPlayer:
                 to pass the project unit tests; you cannot call any other
                 evaluation function directly.
         """
+
+        player = self if maximizing_player else game.get_opponent(self)
+
+        best_score = float('-inf') if maximizing_player else float('inf')
+        best_move = (-1,-1)
+
+        if (depth==1):
+            posible_moves = game.get_legal_moves(player)
+            for move in posible_moves:
+                sub_game = game.copy()
+                sub_game.apply_move(move)
+                current_score = self.score(sub_game,player)
+                if maximizing_player:
+                    if current_score>=best_score:
+                        best_move = move
+                        best_score = current_score
+                else:
+                    if current_score<=best_score:
+                        best_move = move
+                        best_score = current_score
+
+        return (best_score,best_move)
+
         if self.time_left() < self.TIMER_THRESHOLD:
             raise Timeout()
 
