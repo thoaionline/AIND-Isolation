@@ -46,6 +46,7 @@ def custom_score(game, player):
         else:
             return float(my_moves_count - opponent_moves_count)
 
+
 class CustomPlayer:
     """Game-playing agent that chooses a move using your evaluation function
     and a depth-limited minimax algorithm with alpha-beta pruning. You must
@@ -127,14 +128,14 @@ class CustomPlayer:
         # move from the game board (i.e., an opening book), or returning
         # immediately if there are no legal moves
 
-        if len(legal_moves)==0:
-            return (-1,-1)
+        if len(legal_moves) == 0:
+            return (-1, -1)
 
         best_score = float("-inf")
         best_move = legal_moves[0]
 
         try:
-            best_score,best_move = self.minimax(game,6)
+            best_score, best_move = self.minimax(game, 6)
 
         except Timeout:
             # Handle any actions required at timeout, if necessary
@@ -178,13 +179,13 @@ class CustomPlayer:
             raise Timeout()
 
         # Terminal node
-        if depth==0:
+        if depth == 0:
             score_fn = self.score
-            return score_fn(game,self),(-1,-1)
+            return score_fn(game, self), (-1, -1)
 
         # Going to the next level
         best_score = float('-inf') if maximizing_player else float('inf')
-        best_move = (-1,-1)
+        best_move = (-1, -1)
 
         posible_moves = game.get_legal_moves()
         for move in posible_moves:
@@ -200,7 +201,7 @@ class CustomPlayer:
                     best_move = move
                     best_score = sub_score
 
-        return (best_score,best_move)
+        return (best_score, best_move)
 
     def alphabeta(self, game, depth, alpha=float("-inf"), beta=float("inf"), maximizing_player=True):
         """Implement minimax search with alpha-beta pruning as described in the
@@ -244,26 +245,37 @@ class CustomPlayer:
         if self.time_left() < self.TIMER_THRESHOLD:
             raise Timeout()
 
-        best_score = float('-inf') if maximizing_player else float('inf')
-        best_move = (-1,-1)
+        if depth == 0:
+            score_fn = self.score
+            return score_fn(game, self), (-1, -1)
 
-        posible_moves = game.get_legal_moves()
-        for move in posible_moves:
-            sub_game = game.forecast_move(move)
-            if depth==1:
-                score_fn = self.score
-                sub_score = score_fn(sub_game,self)
-            else:
-                # Going deeper
-                sub_score, _ = self.minimax(sub_game, depth - 1, not maximizing_player)
+        if maximizing_player:
+            best_score, best_move = float('-inf'), (-1, -1)
+            for move in game.get_legal_moves(self):
 
-            if maximizing_player:
-                if sub_score > best_score:
-                    best_move = move
-                    best_score = sub_score
-            else:
-                if sub_score < best_score:
-                    best_move = move
-                    best_score = sub_score
+                sub_game = game.forecast_move(move)
+                sub_score, _ = self.alphabeta(sub_game, depth - 1, alpha, beta, False)
 
-        return (best_score,best_move)
+                if sub_score >= best_score:
+                    best_score, best_move = sub_score, move
+                alpha = max(alpha, best_score)
+
+                if beta <= alpha:
+                    break
+
+            return (best_score, best_move)
+
+        else:
+            best_score, best_move = float('inf'), (-1, -1)
+            for move in game.get_legal_moves(game.get_opponent(self)):
+
+                sub_game = game.forecast_move(move)
+                sub_score, _ = self.alphabeta(sub_game, depth - 1, alpha, beta, True)
+
+                if sub_score <= best_score:
+                    best_score, best_move = sub_score, move
+                beta = min(beta, best_score)
+
+                if (beta <= alpha):
+                    break
+            return (best_score, best_move)
