@@ -177,19 +177,19 @@ class CustomPlayer:
         if self.time_left() < self.TIMER_THRESHOLD:
             raise Timeout()
 
+        # Terminal node
+        if depth==0:
+            score_fn = self.score
+            return score_fn(game,self),(-1,-1)
+
+        # Going to the next level
         best_score = float('-inf') if maximizing_player else float('inf')
         best_move = (-1,-1)
 
         posible_moves = game.get_legal_moves()
         for move in posible_moves:
-            #sub_game = game.copy()
             sub_game = game.forecast_move(move)
-            if depth==1:
-                score_fn = self.score
-                sub_score = score_fn(sub_game,self)
-            else:
-                # Going deeper
-                sub_score, _ = self.minimax(sub_game, depth - 1, not maximizing_player)
+            sub_score, _ = self.minimax(sub_game, depth - 1, not maximizing_player)
 
             if maximizing_player:
                 if sub_score > best_score:
@@ -249,7 +249,6 @@ class CustomPlayer:
 
         posible_moves = game.get_legal_moves()
         for move in posible_moves:
-            #sub_game = game.copy()
             sub_game = game.forecast_move(move)
             if depth==1:
                 score_fn = self.score
