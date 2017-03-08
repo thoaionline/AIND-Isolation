@@ -131,15 +131,19 @@ class CustomPlayer:
         if len(legal_moves) == 0:
             return (-1, -1)
 
-        best_score = float("-inf")
-        best_move = legal_moves[0]
+        best_score, best_move = float("-inf"), legal_moves[0]
+        search_method = getattr(self, self.method)
 
         try:
-            best_score, best_move = self.minimax(game, 6)
+            max_depth = 1
+            while True:
+                best_score, best_move = search_method(game, max_depth)
+                if best_score == float('inf'):
+                    return best_move
+                max_depth += 1
 
         except Timeout:
-            # Handle any actions required at timeout, if necessary
-            pass
+            return best_move
 
         return best_move
 
