@@ -134,6 +134,10 @@ class CustomPlayer:
         best_score, best_move = float("-inf"), legal_moves[0]
         search_method = getattr(self, self.method)
 
+        if not self.iterative:
+            best_score, best_move = search_method(game, self.search_depth)
+            return best_move
+
         try:
             max_depth = 1
             while True:
