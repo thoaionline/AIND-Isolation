@@ -8,10 +8,211 @@ relative strength using tournament.py and include the results in your report.
 """
 import random
 
+directions = [(-2, -1), (-2, 1), (-1, -2), (-1, 2),
+              (1, -2), (1, 2), (2, -1), (2, 1)]
+
 
 class Timeout(Exception):
     """Subclass base exception for code clarity."""
     pass
+
+
+def get_moving_area_for_player(game, player):
+    """
+
+    Parameters
+    ----------
+    game : `isolation.Board`
+    player : CustomPlayer
+
+    Returns
+    -------
+    (int,int)
+        * distance from border to initial location
+        * the area that this player reach
+    """
+
+    remaining = set(game.get_blank_spaces())
+    player_location = game.get_player_location(player)
+
+    next = set([player_location])
+    search_space = set()
+
+    # We may not be able to go through all locations, let's narrow the search space
+    has_move = True
+    border = 0
+    while has_move:
+        has_move = False
+        current_round = next
+        next = set()
+        for starting_position in current_round:
+            for direction in directions:
+                next_position = (starting_position[0] + direction[0], starting_position[1] + starting_position[1])
+                if next_position in remaining:
+                    remaining.remove(next_position)
+                    next.add(next_position)
+                    search_space.add(next_position)
+                    has_move = True
+        if has_move:
+            border += 1
+
+    return border, len(search_space)
+
+
+def get_max_step_for_player(game, player):
+    """
+    Because a knight's movement follows a bipatite graph, we find the 2 sub graphs and assign findings there. The
+    maximum numbers of moves is limited to 2x the size of the smaller set, and a bonus step if there are more positions
+    in the even set
+
+    http://mathworld.wolfram.com/KnightGraph.html
+    Parameters
+    ----------
+    game
+    player
+
+    Returns
+    -------
+    (int,set)
+        upper limit of number of steps we can take
+    """
+    remaining = set(game.get_blank_spaces())
+    player_location = game.get_player_location(player)
+
+    next = set([player_location])
+    moving_area = set()
+
+    # We may not be able to go through all locations, let's narrow the search space
+    has_move = True
+
+    odd_steps = 0
+    even_steps = 0
+
+    is_odd_step = True
+
+    while has_move:
+        has_move = False
+        current_round = next
+        next = set()
+        for starting_position in current_round:
+            for direction in directions:
+                next_position = (starting_position[0] + direction[0], starting_position[1] + starting_position[1])
+                if next_position in remaining:
+                    remaining.remove(next_position)
+                    next.add(next_position)
+                    moving_area.add(next_position)
+
+                    if is_odd_step:
+                        odd_steps += 1
+                    else:
+                        even_steps += 1
+
+                    has_move = True
+
+    max_steps = min(odd_steps, even_steps)
+
+    # Bonus step
+    if even_steps > odd_steps:
+        max_steps += 1
+
+    return max_steps, moving_area
+
+
+def real_steps_score(game, player):
+    """
+
+    Parameters
+    ----------
+    game : `isolation.Board`
+    player
+
+    Returns
+    -------
+
+    """
+    if game.is_winner(player):
+        return float('inf')
+    elif game.is_loser(player):
+        return float('-inf')
+
+    opponent = game.get_opponent(player)
+
+    max_p_steps, area = get_max_step_for_player(game, player)
+    max_o_steps, o_area = get_max_step_for_player(game, opponent)
+
+    score = max_p_steps - max_o_steps
+
+    # If it's player's turn, deduct 0.5 point for the disadvantage
+    if game.active_player == player:
+        score -= 0.5
+
+    # If there is partition, search for end game
+    if len(area.intersection(o_area)):
+        # To do: a proper end-game search
+        if max_p_steps > max_o_steps:
+            return float('inf')
+        elif max_p_steps < max_o_steps:
+            return float('-inf')
+
+    return score
+
+
+def moving_area_score(game, player):
+    """
+
+    Parameters
+    ----------
+    game: `isolation.Board`
+    player: CustomPlayer
+
+    Returns
+    -------
+    float
+        difference in number of possible steps
+
+    """
+
+    if game.is_winner(player):
+        return float('inf')
+    elif game.is_loser(player):
+        return float('-inf')
+
+    opponent = game.get_opponent(player)
+    player_step, possibilities = get_moving_area_for_player(game, player)
+    opponent_step, opp_possibilities = get_moving_area_for_player(game, opponent)
+    return float(player_step * possibilities - opponent_step * opp_possibilities)
+
+
+def improved_score(game, player):
+    """The "Improved" evaluation function discussed in lecture that outputs a
+    score equal to the difference in the number of moves available to the
+    two players.
+
+    Parameters
+    ----------
+    game : `isolation.Board`
+        An instance of `isolation.Board` encoding the current state of the
+        game (e.g., player locations and blocked cells).
+
+    player : hashable
+        One of the objects registered by the game object as a valid player.
+        (i.e., `player` should be either game.__player_1__ or
+        game.__player_2__).
+
+    Returns
+    ----------
+    float
+        The heuristic value of the current game state
+    """
+    if game.is_loser(player):
+        return float("-inf")
+
+    if game.is_winner(player):
+        return float("inf")
+
+    own_moves = len(game.get_legal_moves(player))
+    opp_moves = len(game.get_legal_moves(game.get_opponent(player)))
+    return float(own_moves - opp_moves)
 
 
 def custom_score(game, player):
@@ -78,7 +279,7 @@ class CustomPlayer:
     """
 
     def __init__(self, search_depth=3, score_fn=custom_score,
-                 iterative=True, method='minimax', timeout=10.):
+                 iterative=True, method='minimax', timeout=20.):
         self.search_depth = search_depth
         self.iterative = iterative
         self.score = score_fn

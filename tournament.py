@@ -30,6 +30,8 @@ from sample_players import RandomPlayer
 from sample_players import null_score
 from sample_players import open_move_score
 from sample_players import improved_score
+from game_agent import moving_area_score
+from game_agent import real_steps_score
 from game_agent import CustomPlayer
 from game_agent import custom_score
 
@@ -160,8 +162,12 @@ def main():
     # systems; i.e., the performance of the student agent is considered
     # relative to the performance of the ID_Improved agent to account for
     # faster or slower computers.
-    test_agents = [Agent(CustomPlayer(score_fn=improved_score, **CUSTOM_ARGS), "ID_Improved"),
-                   Agent(CustomPlayer(score_fn=custom_score, **CUSTOM_ARGS), "Student")]
+    test_agents = [
+        Agent(CustomPlayer(score_fn=real_steps_score, **CUSTOM_ARGS), "Student with real_steps_score"),
+        #Agent(CustomPlayer(score_fn=moving_area_score, **CUSTOM_ARGS), "Student with moving_area_score"),
+        Agent(CustomPlayer(score_fn=improved_score, **CUSTOM_ARGS), "ID_Improved"),
+        Agent(CustomPlayer(score_fn=custom_score, **CUSTOM_ARGS), "Student")
+    ]
 
     print(DESCRIPTION)
     for agentUT in test_agents:
