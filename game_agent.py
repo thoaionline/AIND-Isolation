@@ -258,15 +258,15 @@ def custom_score(game, player):
     float
         The heuristic value of the current game state to the specified player.
     """
-    my_moves_count = len(game.get_legal_moves(player))
-    if my_moves_count == 0:
-        return float('-inf')
-    else:
-        opponent_moves_count = len(game.get_legal_moves(game.get_opponent(player)))
-        if opponent_moves_count == 0:
-            return float('inf')
-        else:
-            return float(my_moves_count - opponent_moves_count)
+    if game.is_loser(player):
+        return float("-inf")
+
+    if game.is_winner(player):
+        return float("inf")
+
+    own_moves = len(game.get_legal_moves(player))
+    opp_moves = len(game.get_legal_moves(game.get_opponent(player)))
+    return float(pow(2,own_moves) - pow(2,opp_moves))
 
 
 class CustomPlayer:
@@ -356,11 +356,14 @@ class CustomPlayer:
         best_score, best_move = float("-inf"), legal_moves[0]
         search_method = getattr(self, self.method)
 
-        if not self.iterative:
-            best_score, best_move = search_method(game, self.search_depth)
-            return best_move
-
         try:
+
+            # Fixed-depth search
+            if not self.iterative:
+                best_score, best_move = search_method(game, self.search_depth)
+                return best_move
+
+            # Variable depth search
             max_depth = 1
             while True:
                 best_score, best_move = search_method(game, max_depth)
