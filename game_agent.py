@@ -157,6 +157,27 @@ def real_steps_score(game, player):
     return score
 
 
+def combined_score(game, player):
+    """
+
+    Parameters
+    ----------
+    game: `isolation.Board`
+    player
+
+    Returns
+    -------
+    float
+    """
+
+    # Let's be a bit greedy during first half of the game
+    if game.move_count < (game.width + game.height / 2):
+        return improved_score(game, player) * 5
+
+    # Decision time
+    return real_steps_score(game, player)
+
+
 def moving_area_score(game, player):
     """
 
@@ -405,10 +426,14 @@ class CustomPlayer:
                 if sub_score > best_score:
                     best_move = move
                     best_score = sub_score
+                    if sub_score == float('inf'):
+                        return best_score, best_move
             else:
                 if sub_score < best_score:
                     best_move = move
                     best_score = sub_score
+                    if sub_score == float('-inf'):
+                        return best_score, best_move
 
         return (best_score, best_move)
 
