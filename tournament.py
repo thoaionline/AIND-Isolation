@@ -161,17 +161,12 @@ def main():
 
 
     test_agents = [
-        #Agent(CustomPlayer(score_fn=improved_score, **CUSTOM_ARGS), "ID_Improved"),
+        Agent(CustomPlayer(score_fn=improved_score, **CUSTOM_ARGS), "ID_Improved"),
         #Agent(CustomPlayer(score_fn=smart_score, **CUSTOM_ARGS), "Student with combined score"),
         #Agent(CustomPlayer(score_fn=knight_only_score, **CUSTOM_ARGS), "Student with knight only score"),
         #Agent(CustomPlayer(score_fn=real_steps_score, **CUSTOM_ARGS), "Student with real_steps_score"),
-        Agent(CustomPlayer(score_fn=moving_area_score, **CUSTOM_ARGS), "Student with moving_area_score"),
+        Agent(CustomPlayer(score_fn=custom_score, **CUSTOM_ARGS), "Student with moving_area_score"),
     ]
-
-    for i in range(1, 5):
-        test_agents.append(
-            Agent(CustomPlayer(score_fn=meta_score(i), **CUSTOM_ARGS), "Student with mix ratio {}".format(i))
-        )
 
     print(DESCRIPTION)
     for agentUT in test_agents:
