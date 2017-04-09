@@ -201,7 +201,7 @@ def moving_area_score(game, player):
     opponent = game.get_opponent(player)
     player_step, possibilities = get_moving_area_for_player(game, player)
     opponent_step, opp_possibilities = get_moving_area_for_player(game, opponent)
-    return float(player_step * len(possibilities) - opponent_step * (opp_possibilities))
+    return float(player_step * len(possibilities) - opponent_step * len(opp_possibilities))
 
 
 def get_moves_from_position(available_squares, position):
@@ -300,7 +300,7 @@ def game_is_partitioned(game):
     return len(area1.intersection(area2)) > 0
 
 
-def smart_score(game, player):
+def knight_only_score(game, player):
     """
 
     Parameters
@@ -319,6 +319,41 @@ def smart_score(game, player):
         return float("inf")
 
     if game_is_partitioned(game):
+        my_score = knight_heuristic(game, game.get_player_location(player))
+        opp_score = knight_heuristic(game, game.get_player_location(game.get_opponent(player)))
+        if my_score > opp_score:
+            return float('inf')
+        else:
+            return float('-inf')
+    else:
+        own_moves = len(game.get_legal_moves(player))
+        opp_moves = len(game.get_legal_moves(game.get_opponent(player)))
+        return float(own_moves - opp_moves)
+
+
+def meta_score(ratio):
+    return lambda game, player: smart_score(game, player, ratio)
+
+
+def smart_score(game, player, ratio=1):
+    """
+
+    Parameters
+    ----------
+    game: `isolation.Board`
+    player
+
+    Returns
+    -------
+
+    """
+    if game.is_loser(player):
+        return float("-inf")
+
+    if game.is_winner(player):
+        return float("inf")
+
+    if (game.move_count > min(game.width, game.height) * 2) and game_is_partitioned(game):
         my_score = knight_heuristic(game, game.get_player_location(player))
         opp_score = knight_heuristic(game, game.get_player_location(game.get_opponent(player)))
         if my_score > opp_score:
@@ -595,8 +630,6 @@ class CustomPlayer:
                 if beta <= alpha:
                     break
 
-            return (best_score, best_move)
-
         else:
             best_score, best_move = float('inf'), (-1, -1)
             for move in game.get_legal_moves(game.get_opponent(self)):
@@ -610,4 +643,5 @@ class CustomPlayer:
 
                 if (beta <= alpha):
                     break
-            return (best_score, best_move)
+
+        return (best_score, best_move)
