@@ -16,7 +16,6 @@ class Timeout(Exception):
     """Subclass base exception for code clarity."""
     pass
 
-
 def get_moving_area_for_player(game, player):
     """
 
@@ -57,7 +56,6 @@ def get_moving_area_for_player(game, player):
             border += 1
 
     return border, search_space
-
 
 def get_max_step_for_player(game, player):
     """
@@ -117,10 +115,9 @@ def get_max_step_for_player(game, player):
 
     return max_steps, moving_area
 
-
 def real_steps_score(game, player):
     """
-
+    Heuristic based on the difference between number of steps that each player can take
     Parameters
     ----------
     game : `isolation.Board`
@@ -159,6 +156,7 @@ def real_steps_score(game, player):
 
 def combined_score(game, player):
     """
+    Combine the improved_score with real_steps_score after N moves
 
     Parameters
     ----------
@@ -180,6 +178,7 @@ def combined_score(game, player):
 
 def moving_area_score(game, player):
     """
+    Scoring heurstic based on the difference between the players' available moving area/space
 
     Parameters
     ----------
@@ -203,9 +202,40 @@ def moving_area_score(game, player):
     opponent_step, opp_possibilities = get_moving_area_for_player(game, opponent)
     return float(player_step * len(possibilities) - opponent_step * len(opp_possibilities))
 
+def improved_score(game, player):
+    """The "Improved" evaluation function discussed in lecture that outputs a
+    score equal to the difference in the number of moves available to the
+    two players.
+
+    Parameters
+    ----------
+    game : `isolation.Board`
+        An instance of `isolation.Board` encoding the current state of the
+        game (e.g., player locations and blocked cells).
+
+    player : hashable
+        One of the objects registered by the game object as a valid player.
+        (i.e., `player` should be either game.__player_1__ or
+        game.__player_2__).
+
+    Returns
+    ----------
+    float
+        The heuristic value of the current game state
+    """
+    if game.is_loser(player):
+        return float("-inf")
+
+    if game.is_winner(player):
+        return float("inf")
+
+    own_moves = len(game.get_legal_moves(player))
+    opp_moves = len(game.get_legal_moves(game.get_opponent(player)))
+    return float(own_moves - opp_moves)
 
 def get_moves_from_position(available_squares, position):
     """
+    Find the available moves from `position`
 
     Parameters
     ----------
@@ -227,6 +257,8 @@ def get_moves_from_position(available_squares, position):
 
 def knight_heuristic(game, start_position):
     """
+    Estimate the the longest path that a knight can take by moving on the most narrow path (least option 1-step ahead).
+    This function is used in the knight_only_score heuristic.
 
     Parameters
     ----------
@@ -245,8 +277,6 @@ def knight_heuristic(game, start_position):
     search_space = set(game.get_blank_spaces())
 
     longest_path = 0
-
-    possible_moves_count = 1
 
     current_position = start_position
     next_move = start_position
@@ -285,6 +315,7 @@ def knight_heuristic(game, start_position):
 
 def game_is_partitioned(game):
     """
+    Detect whether the game board is partitioned.
 
     Parameters
     ----------
@@ -292,7 +323,8 @@ def game_is_partitioned(game):
 
     Returns
     -------
-
+    bool
+        True if game board is partition, False otherwise
     """
     _, area1 = get_moving_area_for_player(game, game.active_player)
     _, area2 = get_moving_area_for_player(game, game.inactive_player)
@@ -302,6 +334,7 @@ def game_is_partitioned(game):
 
 def knight_only_score(game, player):
     """
+    Knight's movement heuristic, with fallback to deep search when partitioning is detected.
 
     Parameters
     ----------
@@ -310,7 +343,8 @@ def knight_only_score(game, player):
 
     Returns
     -------
-
+    float
+        game score from current player's perspective
     """
     if game.is_loser(player):
         return float("-inf")
@@ -334,9 +368,10 @@ def knight_only_score(game, player):
 def meta_score(ratio):
     return lambda game, player: smart_score(game, player, ratio)
 
-
 def smart_score(game, player, ratio=1):
     """
+    Experimental heuristic tha run a heuristic only after ration*N steps, to be called via meta_score
+    This function is intended for experimentation only and should be disrecarded in the final submission/evaluation.
 
     Parameters
     ----------
@@ -345,7 +380,8 @@ def smart_score(game, player, ratio=1):
 
     Returns
     -------
-
+    float
+        score from the perspective of `player`
     """
     if game.is_loser(player):
         return float("-inf")
@@ -366,38 +402,7 @@ def smart_score(game, player, ratio=1):
         return float(own_moves - opp_moves)
 
 
-def custom_score(game, player):
-    """Calculate the heuristic value of a game state from the point of view
-    of the given player.
-
-    Note: this function should be called from within a Player instance as
-    `self.score()` -- you should not need to call this function directly.
-
-    Parameters
-    ----------
-    game : `isolation.Board`
-        An instance of `isolation.Board` encoding the current state of the
-        game (e.g., player locations and blocked cells).
-
-    player : object
-        A player instance in the current game (i.e., an object corresponding to
-        one of the player objects `game.__player_1__` or `game.__player_2__`.)
-
-    Returns
-    -------
-    float
-        The heuristic value of the current game state to the specified player.
-    """
-    if game.is_loser(player):
-        return float("-inf")
-
-    if game.is_winner(player):
-        return float("inf")
-
-    own_score = knight_heuristic(game, game.get_player_location(player))
-    opp_score = knight_heuristic(game, game.get_player_location(game.get_opponent(player)))
-    return float(own_score - opp_score)
-
+custom_score = knight_only_score
 
 class CustomPlayer:
     """Game-playing agent that chooses a move using your evaluation function
