@@ -19,7 +19,6 @@ class Timeout(Exception):
 
 def get_moving_area_for_player(game, player):
     """
-    Calculate the moving area from the player's current position
 
     Parameters
     ----------
@@ -58,6 +57,152 @@ def get_moving_area_for_player(game, player):
             border += 1
 
     return border, search_space
+
+
+def get_max_step_for_player(game, player):
+    """
+    Because a knight's movement follows a bipatite graph, we find the 2 sub graphs and assign findings there. The
+    maximum numbers of moves is limited to 2x the size of the smaller set, and a bonus step if there are more positions
+    in the even set
+
+    http://mathworld.wolfram.com/KnightGraph.html
+    Parameters
+    ----------
+    game
+    player
+
+    Returns
+    -------
+    (int,set)
+        upper limit of number of steps we can take
+    """
+    remaining = set(game.get_blank_spaces())
+    player_location = game.get_player_location(player)
+
+    next = set([player_location])
+    moving_area = set()
+
+    # We may not be able to go through all locations, let's narrow the search space
+    has_move = True
+
+    odd_steps = 0
+    even_steps = 0
+
+    is_odd_step = True
+
+    while has_move:
+        has_move = False
+        current_round = next
+        next = set()
+        for starting_position in current_round:
+            for direction in directions:
+                next_position = (starting_position[0] + direction[0], starting_position[1] + starting_position[1])
+                if next_position in remaining:
+                    remaining.remove(next_position)
+                    next.add(next_position)
+                    moving_area.add(next_position)
+
+                    if is_odd_step:
+                        odd_steps += 1
+                    else:
+                        even_steps += 1
+
+                    has_move = True
+
+    max_steps = min(odd_steps, even_steps)
+
+    # Bonus step
+    if even_steps > odd_steps:
+        max_steps += 1
+
+    return max_steps, moving_area
+
+
+def real_steps_score(game, player):
+    """
+
+    Parameters
+    ----------
+    game : `isolation.Board`
+    player
+
+    Returns
+    -------
+
+    """
+    if game.is_winner(player):
+        return float('inf')
+    elif game.is_loser(player):
+        return float('-inf')
+
+    opponent = game.get_opponent(player)
+
+    max_p_steps, area = get_max_step_for_player(game, player)
+    max_o_steps, o_area = get_max_step_for_player(game, opponent)
+
+    score = max_p_steps - max_o_steps
+
+    # If it's player's turn, deduct 0.5 point for the disadvantage
+    if game.active_player == player:
+        score -= 0.5
+
+    # If there is partition, search for end game
+    if len(area.intersection(o_area)):
+        # To do: a proper end-game search
+        if max_p_steps > max_o_steps:
+            return float('inf')
+        elif max_p_steps < max_o_steps:
+            return float('-inf')
+
+    return score
+
+
+def combined_score(game, player):
+    """
+
+    Parameters
+    ----------
+    game: `isolation.Board`
+    player
+
+    Returns
+    -------
+    float
+    """
+
+    # Let's be a bit greedy during first half of the game
+    if game.move_count < (game.width + game.height / 2):
+        return improved_score(game, player) * 5
+
+    # Decision time
+    return real_steps_score(game, player)
+
+
+def moving_area_score(game, player):
+    """
+
+    Parameters
+    ----------
+    game: `isolation.Board`
+    player: CustomPlayer
+
+    Returns
+    -------
+    float
+        difference in number of possible steps
+
+    """
+
+    if game.is_winner(player):
+        return float('inf')
+    elif game.is_loser(player):
+        return float('-inf')
+
+    opponent = game.get_opponent(player)
+    player_step, possibilities = get_moving_area_for_player(game, player)
+    opponent_step, opp_possibilities = get_moving_area_for_player(game, opponent)
+    return float(player_step * len(possibilities) - opponent_step * len(opp_possibilities))
+
 
 def get_moves_from_position(available_squares, position):
     """
@@ -137,9 +282,9 @@ def knight_heuristic(game, start_position):
 
     return longest_path
 
+
 def game_is_partitioned(game):
     """
-    Determine whether the game board is partitioned
 
     Parameters
     ----------
@@ -147,8 +292,6 @@ def game_is_partitioned(game):
 
     Returns
     -------
-    bool
-        True if game board is partitioned, false otherwise
 
     """
     _, area1 = get_moving_area_for_player(game, game.active_player)
@@ -156,9 +299,9 @@ def game_is_partitioned(game):
 
     return len(area1.intersection(area2)) > 0
 
-def custom_score(game, player):
+
+def knight_only_score(game, player):
     """
-    Calculate the score from the perspective of `player`
 
     Parameters
     ----------
@@ -186,6 +329,75 @@ def custom_score(game, player):
         own_moves = len(game.get_legal_moves(player))
         opp_moves = len(game.get_legal_moves(game.get_opponent(player)))
         return float(own_moves - opp_moves)
+
+
+def meta_score(ratio):
+    return lambda game, player: smart_score(game, player, ratio)
+
+
+def smart_score(game, player, ratio=1):
+    """
+
+    Parameters
+    ----------
+    game: `isolation.Board`
+    player
+
+    Returns
+    -------
+
+    """
+    if game.is_loser(player):
+        return float("-inf")
+
+    if game.is_winner(player):
+        return float("inf")
+
+    if (game.move_count > min(game.width, game.height) * 2) and game_is_partitioned(game):
+        my_score = knight_heuristic(game, game.get_player_location(player))
+        opp_score = knight_heuristic(game, game.get_player_location(game.get_opponent(player)))
+        if my_score > opp_score:
+            return float('inf')
+        else:
+            return float('-inf')
+    else:
+        own_moves = len(game.get_legal_moves(player))
+        opp_moves = len(game.get_legal_moves(game.get_opponent(player)))
+        return float(own_moves - opp_moves)
+
+
+def custom_score(game, player):
+    """Calculate the heuristic value of a game state from the point of view
+    of the given player.
+
+    Note: this function should be called from within a Player instance as
+    `self.score()` -- you should not need to call this function directly.
+
+    Parameters
+    ----------
+    game : `isolation.Board`
+        An instance of `isolation.Board` encoding the current state of the
+        game (e.g., player locations and blocked cells).
+
+    player : object
+        A player instance in the current game (i.e., an object corresponding to
+        one of the player objects `game.__player_1__` or `game.__player_2__`.)
+
+    Returns
+    -------
+    float
+        The heuristic value of the current game state to the specified player.
+    """
+    if game.is_loser(player):
+        return float("-inf")
+
+    if game.is_winner(player):
+        return float("inf")
+
+    own_score = knight_heuristic(game, game.get_player_location(player))
+    opp_score = knight_heuristic(game, game.get_player_location(game.get_opponent(player)))
+    return float(own_score - opp_score)
+
 
 class CustomPlayer:
     """Game-playing agent that chooses a move using your evaluation function
